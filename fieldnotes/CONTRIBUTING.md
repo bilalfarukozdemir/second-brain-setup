@@ -26,7 +26,7 @@ Bir bulgu = bir dosya. `bulgular/<id>.md`. Dosya adı frontmatter'daki `id` ile 
 id: kebab-case-english-id
 date: YYYY-MM-DD
 impact: high | medium | low
-area: hooks | sync | git | setup | memory | general
+area: hooks | sync | git | setup | vault | memory | general
 platform: all | windows | macos | linux
 ---
 

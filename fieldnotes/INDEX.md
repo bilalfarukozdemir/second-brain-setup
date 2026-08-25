@@ -21,6 +21,7 @@ time.
 | [git-dir-out-of-sync](./bulgular/git-dir-out-of-sync.md) | medium | sync | all | Keep `.git` out of file sync; let a remote repo carry history instead |
 | [stignore-hides-engine-state](./bulgular/stignore-hides-engine-state.md) | medium | sync | all | Syncing the engine's `.state/` folder lets one machine's "already done" stamp make another machine skip a day |
 | [no-force-push](./bulgular/no-force-push.md) | medium | git | all | On a rejected push, fetch and read the reason before reaching for `--force` |
+| [obsidian-ghost-notes](./bulgular/obsidian-ghost-notes.md) | medium | vault | all | A pathless `[[wikilink]]` creates an empty note at vault root when clicked — one was spawned by the rules file's own example text |
 | [dont-answer-from-memory](./bulgular/dont-answer-from-memory.md) | medium | general | all | Model knowledge expires: it named a discontinued app as "official" and had never heard of a months-old official CLI |
 | [not-found-is-not-absent](./bulgular/not-found-is-not-absent.md) | low | general | windows | A package was installed but invisible to file search (MSIX/`WindowsApps`) — "I can't find it" is not "it isn't there" |
 | [windows-desktop-is-onedrive](./bulgular/windows-desktop-is-onedrive.md) | low | setup | windows | "Desktop" is often redirected to `%USERPROFILE%\OneDrive\Desktop`; the old path still exists and is empty |
