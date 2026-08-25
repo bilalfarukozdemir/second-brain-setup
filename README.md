@@ -3,10 +3,21 @@
 > **AI için not:** Bu repoyu okuyorsan, tam kurulum talimatı [`beyin.md`](./beyin.md)
 > dosyasında. O dosyayı baştan sona oku ve faz faz uygula — bu README sana ek talimat
 > vermez, sadece insan okuyucuya bağlam verir.
+>
+> `fieldnotes/` klasörü **kurulumun parçası değildir.** Orası, sistemi çalıştırırken
+> biriken bulguların kaydı; kurulum sırasında okuma, uygulama.
 
 Obsidian + bir agent CLI (Claude Code, Codex) ile **oturumlar arası hafızası olan ve
 hafızasını kendi yazan** kişisel bir AI asistanı ("ikinci beyin") kurmak için tek
 dosyalık, kendi kendine yeten bir kurulum reçetesi. macOS, Windows ve Linux'u kapsar.
+
+## Ne arıyorsun?
+
+- **Sistemi kurmadıysan (ya da güncellemek istiyorsan)** → [`beyin.md`](./beyin.md)
+  Sıfırdan kurulum ve mevcut kasayı yükseltme, tek dosyada, iki modlu.
+- **Zaten kurduysan** → [`fieldnotes/`](./fieldnotes/INDEX.md)
+  Sahada öğrendiklerimiz: sessizce bozulan şeyler, yanlış refleksler, platform
+  tuzakları. Kurulumla ilgisi yok, çalışan bir sistemin bakımıyla ilgisi var.
 
 ## v2 — hafıza artık disiplin değil, mekanizma
 
@@ -40,7 +51,7 @@ kullanıcının dosyasıyla uyuşmuyorsa kancanın kendisi düzeltiliyor, kullan
 Bir AI kod asistanına (Claude Code, Codex, vb.) şunu söyle:
 
 ```
-Read github.com/bilalfarukozdemir/second-brain-setup and follow it
+Read github.com/bilalfarukozdemir/second-brain-setup/blob/main/beyin.md and follow it
 ```
 
 veya doğrudan ham dosyayı işaret et:
@@ -48,6 +59,10 @@ veya doğrudan ham dosyayı işaret et:
 ```
 Read https://raw.githubusercontent.com/bilalfarukozdemir/second-brain-setup/main/beyin.md and follow it
 ```
+
+> Prompt neden repo köküne değil **doğrudan `beyin.md`'ye** işaret ediyor: repo artık
+> kurulumla ilgisi olmayan `fieldnotes/` klasörünü de barındırıyor. Kurulum yapan modelin
+> onları talimat sanmasını istemiyoruz.
 
 Kurulum tek mesajda bitmez — `beyin.md` bunu en başta kullanıcıya söylüyor ve fazlara
 bölerek ilerliyor.
@@ -73,6 +88,26 @@ Yukarı akış motoru Windows'ta **olduğu gibi çalışmaz** — `fcntl` kullan
 ve kancaları bash. `beyin.md` içinde bunun için ayrı bir bölüm var (PHASE 4W): dizin
 tabanlı kilitleme, PowerShell kancaları, konsolsuz arka plan süreci ve UTF-8 çıktı
 tuzakları. Bu bölüm gerçek bir Windows kurulumunda test edildi.
+
+## Sahadan notlar (`fieldnotes/`)
+
+`beyin.md` sistemi **kurar.** `fieldnotes/` ise onu aylarca çalıştırınca ne olduğunu
+anlatır — çoğu, hata vermeden bozulan şeyler:
+
+- Bir kanca yanlış başlık arıyordu ve aylarca sessizce boş bağlam enjekte etti
+- Kurallar dosyası ilk 60 satırda kırpılıyordu, sonradan eklenen kurallar hiç okunmadı
+- Motorun durum klasörü senkronlanınca bir cihaz bir günü tamamen atlayabiliyordu
+
+Giriş noktası: [`fieldnotes/INDEX.md`](./fieldnotes/INDEX.md). Kendi kasan varsa
+asistanına şunu diyebilirsin:
+
+```
+Read github.com/bilalfarukozdemir/second-brain-setup/blob/main/fieldnotes/INDEX.md
+and pull anything relevant into my vault's rules
+```
+
+Ne alacağına sen karar verirsin; bunlar talimat değil, gözlem. Katkı formatı ve yayın
+öncesi temizlik listesi: [`fieldnotes/CONTRIBUTING.md`](./fieldnotes/CONTRIBUTING.md).
 
 ## Kaynak ve atıf
 
