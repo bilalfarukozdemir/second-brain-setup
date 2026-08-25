@@ -39,12 +39,41 @@ platform: all | windows | macos | linux
 `Genel ders` zorunlu ve en önemli alan. O olmadan dosya bir hata kaydı olur, aktarılabilir
 bir bulgu olmaz. Yazamıyorsan bulgu henüz olgunlaşmamıştır.
 
+Yeni dosya eklerken `INDEX.md` tablosuna da bir satır ekle — İngilizce, tek cümle.
+İndeks makine tarafından okunuyor; asıl giriş kapısı o.
+
+## `birakilanlar/` formatı
+
+Denenip ya da değerlendirilip **yapılmamış** şeyler. Bir kayıt = bir dosya,
+`birakilanlar/<id>.md`.
+
+```markdown
+---
+id: kebab-case-english-id
+date: YYYY-MM-DD
+verdict: dropped
+area: tooling | workflow | sync | vault | general
+---
+
+**Aday:** Ne değerlendirildi (varsa link).
+**Neden bakıldı:** Hangi ihtiyacı karşılayacaktı.
+**Neden bırakıldı:** Gerçek gerekçe.
+**Genel ders:** Bu vakadan bağımsız olarak geçerli olan şey.
+```
+
+"Kötüydü" bir gerekçe değil. Çoğu aday **kötü olduğu için değil, uymadığı için**
+bırakılır — gerekçeyi öyle yaz. Başkasının emeğini küçültmeden, neden senin durumuna
+oturmadığını anlat.
+
+Bir "hayır" kaydı, bir "evet" kadar değerli: yazılmazsa aynı aday altı ay sonra
+sıfırdan tekrar değerlendirilir.
+
+## Seçilim
+
 **`impact` ciddiye alınır.** Bu alan bir seçilim mekanizması: `low` bulgular birikirse
 klasör çöplüğe döner. Bir şeyin `high` olması için sessizce ve uzun süre bir şeyi
 bozmuş olması gerekir.
 
-Yeni dosya eklerken `INDEX.md` tablosuna da bir satır ekle — İngilizce, tek cümle.
-İndeks makine tarafından okunuyor; asıl giriş kapısı o.
 
 ## Yayın öncesi kontrol (zorunlu)
 
@@ -65,8 +94,20 @@ isme ihtiyaç varsa, o bulgu buraya girmez.
 Anonimleştirme yeterli: "kullanıcı", "ikinci araç", "bir proje" gibi. Bulgunun değeri
 kimin başına geldiğinde değil, neden olduğunda.
 
-## Akış
+## Akış — fork + PR
 
-Şu an iki kişiyiz, PR seremonisi yok — doğrudan `main`'e push. Tek bulgu = tek dosya
-olduğu için çakışma pratikte imkânsız; ortak dosya sadece `INDEX.md` ve oraya tek satır
-ekleniyor. Üçüncü kişi katıldığında PR'a geçilir, format değişmez.
+Repo public, yani **katkı için collaborator olmana gerek yok.**
+
+1. Repoyu fork'la.
+2. Bulgunu `fieldnotes/bulgular/<id>.md` olarak ekle, `INDEX.md`'ye tek satır yaz.
+3. PR aç. Her PR tek bulgu olsun — konusu ayrı olan şeyler ayrı PR.
+4. Merge'ü repo sahibi yapıyor.
+
+**Neden doğrudan push değil:** İncelemeden geçmeyen bir bulgu klasörü zamanla birikme
+yığınına dönüşüyor. PR, `impact` alanının insan tarafı — birinin "bu gerçekten `high`
+mı, bu ikinci kez birini ısırır mı" diye bakması gerekiyor. Ayrıca **yayın öncesi
+temizlik listesi** ancak ikinci bir çift gözle işe yarıyor; kendi metnindeki kendi
+müşterinin adını görmüyorsun.
+
+Tek bulgu = tek dosya olduğu için çakışma pratikte imkânsız; ortak dosya sadece
+`INDEX.md` ve oraya tek satır ekleniyor.

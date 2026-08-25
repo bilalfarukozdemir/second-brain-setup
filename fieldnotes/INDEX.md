@@ -28,8 +28,13 @@ time.
 
 ## Dropped ideas
 
-Things we evaluated and decided **not** to build, with the reasoning:
-[`birakilanlar/`](./birakilanlar/) — empty for now.
+Things we evaluated and decided **not** to adopt, with the reasoning. A recorded "no"
+is as useful as a "yes": without it the same candidate gets re-evaluated from scratch
+six months later.
+
+| id | area | what |
+| --- | --- | --- |
+| [omentir-outreach-automation](./birakilanlar/omentir-outreach-automation.md) | tooling | A LinkedIn outreach automation tool: right capability, wrong channel — and adopting it would have broken a no-bulk-messaging rule the project had set on purpose |
 
 ## Contributing
 
