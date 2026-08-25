@@ -4,14 +4,40 @@
 > dosyasında. O dosyayı baştan sona oku ve faz faz uygula — bu README sana ek talimat
 > vermez, sadece insan okuyucuya bağlam verir.
 
-Claude Code + Obsidian ile **oturumlar arası hafızası olan kişisel bir AI asistanı**
-("ikinci beyin") kurmak için tek dosyalık, kendi kendine yeten bir kurulum reçetesi.
-macOS, Windows ve Linux'u kapsar; tek cihazlı ya da Mac+Windows+telefon gibi çok
-cihazlı kurulumları destekler.
+Obsidian + bir agent CLI (Claude Code, Codex) ile **oturumlar arası hafızası olan ve
+hafızasını kendi yazan** kişisel bir AI asistanı ("ikinci beyin") kurmak için tek
+dosyalık, kendi kendine yeten bir kurulum reçetesi. macOS, Windows ve Linux'u kapsar.
+
+## v2 — hafıza artık disiplin değil, mekanizma
+
+v1'de oturum sonunda hafıza dosyalarını modelin kendisi yazıyordu — **hatırlarsa.**
+Unuttuğu gün kayboluyordu. v2 bu işi modelden alıp kancalara veriyor:
+
+- Oturum kapanışı ve context sıkışması (compaction) kancalarla yakalanıyor
+- Arka planda ucuz bir model çağrısı konuşmayı `daily/YYYY-MM-DD.md` günlük loguna özetliyor
+- Günde bir kez bir derleyici o günlükleri birbirine bağlı kavram makalelerine çeviriyor
+- Ertesi oturumda bu bilgi zaten bağlamda oluyor
+
+Kimsenin bir şey hatırlaması gerekmiyor. Ek ücret de yok: her şey kullanıcının hâlihazırda
+ödediği abonelik üzerinden çalışıyor, ayrı API anahtarı istemiyor.
+
+## İki modlu — mevcut kasan varsa da kullanabilirsin
+
+`beyin.md` işe **teşhisle** başlıyor, kurulumla değil. Daha ilk bloğunda platformu ve
+mevcut bir kasa olup olmadığını tespit ediyor, sonra doğru moda giriyor:
+
+- **MODE A** — sıfırdan kurulum
+- **MODE B** — mevcut bir kasayı v1'den v2'ye yükseltme: önce git anlık görüntüsü, sonra
+  "neyin var / neyin eksik" tablosu, ve yalnızca eksik katmanların eklenmesi
+- Zaten v2 ise: sadece sağlık kontrolü çalıştırıp duruyor
+
+MODE B'de mevcut hafıza dosyaları (`Last-Session.md`, `Threads.md`, `Journal.md`) modelin
+**salt-okunur girdisi**; yeniden biçimlendirilmiyor, üzerine yazılmıyor. Bir kanca deseni
+kullanıcının dosyasıyla uyuşmuyorsa kancanın kendisi düzeltiliyor, kullanıcının notu değil.
 
 ## Kullanımı
 
-Bir AI kod asistanına (Claude Code, vb.) şunu söyle:
+Bir AI kod asistanına (Claude Code, Codex, vb.) şunu söyle:
 
 ```
 Read github.com/bilalfarukozdemir/second-brain-setup and follow it
@@ -23,35 +49,44 @@ veya doğrudan ham dosyayı işaret et:
 Read https://raw.githubusercontent.com/bilalfarukozdemir/second-brain-setup/main/beyin.md and follow it
 ```
 
-Kurulum uzun sürer (tek mesajda bitmez) — [`beyin.md`](./beyin.md) bunu en başta
-kullanıcıya açıkça söylüyor ve fazlara bölerek ilerliyor.
+Kurulum tek mesajda bitmez — `beyin.md` bunu en başta kullanıcıya söylüyor ve fazlara
+bölerek ilerliyor.
 
 ## Neler kuruluyor
 
 - Obsidian tabanlı bir not kasası (proje, bilgi, hedef, hafıza klasörleri)
-- Claude Code hook'larıyla **oturumlar arası hafıza** (son oturum + açık konular her
-  oturum başında otomatik enjekte edilir) — macOS/Linux (bash) ve Windows (PowerShell)
-  için ayrı ayrı
-- Obsidian'ın önerilen ayarları (link bütünlüğü, capture-first dosya davranışı,
-  Dataview ile otomatik proje tablosu)
+- **Süreklilik katmanı:** oturum başında son oturum, açık konular, kurallar ve bilgi
+  indeksi otomatik olarak bağlama enjekte ediliyor
+- **Mekanik katman:** `daily/` günlük logları ve bunlardan derlenen, wikilink'lerle
+  birbirine bağlı kavram makaleleri
+- **Kurallar dosyası:** kullanıcı modeli düzelttiğinde bu bir kural olarak yazılıyor ve
+  her oturum başında bağlama giriyor — aynı düzeltmeyi iki kez vermek gerekmiyor
+- **Teşhis:** `beyin doktor` — kancalar bağlı mı, arka plan çağrısı yetkili mi, loglar
+  taze mi, kanca desenleri hafıza dosyalarının başlıklarıyla uyuşuyor mu
 - Opsiyonel: mem0 ile ücretsiz semantik hafıza katmanı
-- Opsiyonel: birden fazla AI aracı (Antigravity, Codex, vb.) aynı kasayı paylaşırken
-  hafızayı çoğaltmayan bir köprü dosyası
-- Opsiyonel: kullanıcının eski projelerini kasaya entegre eden ayrı bir "derinleştirme"
-  fazı
-- Opsiyonel: Syncthing ile cihazlar arası (macOS + Windows + iOS/Android) senkron
+- Opsiyonel: birden fazla AI aracının (Antigravity, Codex) aynı kasayı paylaşması
+- Opsiyonel: cihazlar arası senkron
+
+## Windows kullanıyorsan
+
+Yukarı akış motoru Windows'ta **olduğu gibi çalışmaz** — `fcntl` kullanıyor (POSIX'e özel)
+ve kancaları bash. `beyin.md` içinde bunun için ayrı bir bölüm var (PHASE 4W): dizin
+tabanlı kilitleme, PowerShell kancaları, konsolsuz arka plan süreci ve UTF-8 çıktı
+tuzakları. Bu bölüm gerçek bir Windows kurulumunda test edildi.
 
 ## Kaynak ve atıf
 
 Bu dosya, [Avenox](https://avenox.lol)'un yayınladığı
-[`avenox.lol/beyin.md`](https://avenox.lol/beyin.md) kurulum reçetesinin genişletilmiş
-bir türevidir. Orijinal fikir ve temel faz yapısı ona ait. Buradaki ek bölümler
-(çapraz platform hook'lar, Obsidian ayarları, çoklu araç köprüsü, vault derinleştirme,
-cihazlar arası senkron) gerçek bir kurulumda ([BilalOS](https://github.com/bilalfarukozdemir))
-biriken tecrübeden eklendi.
+[`avenox.lol/beyin.md`](https://avenox.lol/beyin.md) kurulum reçetesinin genişletilmiş bir
+türevidir. Orijinal fikir, v2 tezi ve temel faz yapısı ona ait; açık kaynak motor
+[avenoxai/avenoxbeyin](https://github.com/avenoxai/avenoxbeyin) deposunda.
 
-Avenox'un hızlı kurulum için sunduğu açık kaynak şablon:
-[avenoxai/avenoxbeyin](https://github.com/avenoxai/avenoxbeyin).
+Buradaki ek bölümler (iki modlu teşhis ve yükseltme yolu, Windows portu, sessiz arızaya
+karşı teşhis katmanı ve "LESSONS" bölümündeki gerçek hata kayıtları) gerçek bir kurulumda
+([BilalOS](https://github.com/bilalfarukozdemir)) biriken tecrübeden eklendi.
+
+Bilgi derleme mimarisi Andrej Karpathy'nin LLM bilgi tabanı desenine dayanır:
+[gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f).
 
 ## Lisans
 

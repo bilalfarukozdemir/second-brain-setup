@@ -1,657 +1,339 @@
-# beyin.md — Build Me a Second Brain (BilalOS tecrübesiyle genişletilmiş sürüm)
+# Build or Upgrade a Second Brain (v2, two-mode)
 
-> You are Claude Code. The human in front of you wants their own AI-native "second brain"
-> running on Obsidian + Claude Code, with **persistent memory across sessions**. This file
-> is your complete, self-contained build spec — the original open-source scaffold plus
-> hard-won lessons from a real deployment (BilalOS). Read it once, top to bottom, then
-> execute it phase by phase. You need no other context.
+> You are Claude Code or Codex. The human in front of you wants an AI-native "second
+> brain" on Obsidian, with memory that survives across sessions **and writes itself**.
+> They may already have one. Your first job is to find out which.
 >
-> Original source: https://avenox.lol/beyin.md — this version adds: cross-platform hooks
-> (macOS/Linux **and** Windows), Obsidian recommended settings, a multi-tool memory bridge
-> phase, a "deepen the vault" phase for users who bring pre-existing projects, and a
-> cross-device sync phase.
+> Sources: spec `https://avenox.lol/beyin.md` · engine `https://github.com/avenoxai/avenoxbeyin`
+> · this file adds the Windows port and the failure lessons from a real v1→v2 upgrade.
 
----
+## ⛔ FIRST ACTION — do this before reading the rest
 
-## The idea (say this to the user, in their own words)
-
-Most people use ChatGPT and it forgets them every session. A second brain fixes that:
-a local Obsidian vault for everything you know and do, driven by Claude Code, with a memory
-layer that survives across sessions. You don't manage files — you talk to it, and it organizes,
-remembers, and builds on yesterday. This script sets the whole thing up for you, start to finish,
-and — if the user already has old projects lying around — helps integrate that history too.
-
-### Before you start: set expectations honestly
-
-Say this to the user, in your own words, before PHASE 0 begins — don't skip it and don't bury
-it in the middle of a long response:
-
-> Bu kurulum uzun bir süreç. Tek mesajda bitecek bir şey değil — bugün iskeleti kuracağız,
-> sonra ayrı oturumlarda (Projeler, Arsenal, Vizyon gibi) bölüm bölüm derinleştireceğiz, üstüne
-> istersen cihazlar arası senkron ve başka araçlarla köprü gibi ek adımlar da var. Sıkıcı gelen
-> anlar olabilir — bir klasör ismi onaylamak, bir API key yapıştırmak gibi küçük mekanik adımlar
-> da var arasında. Ama sonunda gerçekten hatırlayan, senin geçmişini bilen bir sistemin oluyor —
-> buna değer. Azimle, adım adım gidelim; bir fazda takılırsak atlayıp devam ederiz, hiçbir şey
-> tek seferde mükemmel olmak zorunda değil.
-
-This isn't filler politeness — it's calibration. A user who expects one quick prompt and gets a
-multi-session build will feel misled halfway through and may abandon it. A user who knows
-upfront that this is a marathon, not a sprint, sticks with it.
-
----
-
-## Rules for you, Claude (read before doing anything)
-
-1. **Speak Turkish to the user by default.** The audience is Turkish. Match the language the
-   user writes in, but default to warm, direct Turkish. (This file is in English only so your
-   instructions stay precise — the *system you build* talks to them in Turkish.)
-2. **Interview first, build second.** Do PHASE 0 before touching the filesystem.
-3. **Never destroy — and never take "delete it" at face value.** If a target folder/file
-   already exists, show it and ask before overwriting. Default to merge/skip, never silent
-   clobber. This applies doubly during PHASE 11 (deepening): if you find an old project with
-   no backup and no git history, **back it up first** (e.g. push it private to GitHub) even
-   if the user tells you to just delete it — show them what you found, let them confirm the
-   backup happened, then proceed. A user saying "sil" (delete) once doesn't mean they've
-   weighed what's actually in that folder.
-4. **Resolve every `{{PLACEHOLDER}}`** from the interview before writing files. Never leave a
-   literal `{{...}}` in any generated file.
-5. **Don't block on optional steps.** Obsidian CLI, mem0, and analytics are nice-to-haves.
-   If an install fails, log it, tell the user, and continue.
-6. **Verify each phase — and actually test the things that claim to be automatic.** A quick
-   file-existence check before moving on is the minimum. For the memory hooks specifically
-   (PHASE 4), that's not enough: after wiring them, tell the user to close this session and
-   start a fresh one, and confirm the injected context genuinely shows up. A hook that looks
-   correct on paper but was never fired is worse than no hook — it gives false confidence and
-   the user stops double-checking.
-7. **Be the demo.** This is often filmed or screen-shared. Narrate what you're doing in short
-   Turkish lines as you go ("Vault iskeletini kuruyorum...", "Hafıza motorunu bağlıyorum...").
-8. **Filing ≠ deep work.** This distinction matters most in PHASE 11, but state it as a
-   standing rule in the CLAUDE.md you write (PHASE 3), because it governs everything that
-   happens after this setup session ends. Moving a note to the right folder, tagging it,
-   linking it — low risk, do it without asking. Researching a topic, making a judgment call,
-   or writing long authoritative-sounding content — high risk, needs the user's go-ahead. If
-   you're mid-task and unsure which one you're doing, default to the cheap version: file it
-   with `status: taslak`, note the source and what's missing, and ask before going deeper.
-9. **One external source is not ground truth.** If you pull bio/expertise/project data from
-   the user's own old website, CV, or README to seed the vault, don't transcribe it blindly —
-   confirm with the user first, especially anything that might be stale (people change jobs,
-   rebrand projects, abandon side-projects). The person's own current word outranks any
-   document about them, including ones they wrote themselves six months ago.
-10. **Filling every folder is not the goal.** Some sections (reflections, personal notes,
-    anything meant to grow organically) should stay empty at first. Say so explicitly when
-    you get there instead of generating filler content to make the vault look complete. An
-    intentionally empty section is a decision, not a gap.
-
-Placeholders you must resolve:
-`{{OS_NAME}}` · `{{USER_NAME}}` · `{{USER_BIO}}` · `{{COMPANION}}` · `{{VAULT_PATH}}` ·
-`{{SCOPE}}` · `{{USE_MEM0}}` · `{{PLATFORM}}` (mac/linux or windows) · `{{TODAY}}` (YYYY-MM-DD) ·
-`{{OLD_PROJECTS_PATH}}` (can be empty) · `{{USE_SYNC}}` + `{{SYNC_DEVICES}}` (can be empty/no)
-
----
-
-## FAST PATH — clone the open-source template (recommended)
-
-There's a ready-made, personal-data-free scaffold of this whole system on GitHub. Cloning it is
-faster and less error-prone than building every file by hand. **Prefer this path if the network
-and git are available**, then layer PHASE 6B (Obsidian settings), PHASE 9 (multi-tool bridge),
-PHASE 11 (deepening), and PHASE 12 (cross-device sync) from this document on top of it — those
-aren't in the upstream scaffold yet.
+**Do not start installing. Do not create a single file yet.** Two commands, then a
+question, then you know which half of this document applies to you:
 
 ```bash
-git clone https://github.com/avenoxai/avenoxbeyin.git /tmp/avenoxbeyin && cd /tmp/avenoxbeyin
+uname -s 2>/dev/null || echo "Windows"
 ```
-Then read and follow `SETUP.md` in that repo — it contains the full interview + personalize +
-launcher runbook (the scaffold is already in `template/`, so you only copy and fill in the blanks).
 
-If the clone fails (no network/git), fall back to building from scratch with the PHASES below.
-Both produce the same system.
+Ask the user, in Turkish: **"Daha önce kurulmuş bir ikinci beynin var mı? Varsa klasör
+yolunu ver."** Whether they say yes or no, also scan for a folder containing `CLAUDE.md`
+(or `AGENTS.md` / `GEMINI.md`) **together with** a memory folder holding `Last-Session.md`.
+
+```bash
+# inside any candidate vault
+test -f .beyin-version && cat .beyin-version || echo "v1 (surum dosyasi yok)"
+```
+
+| Finding | Go to |
+| --- | --- |
+| No candidate found | **MODE A — fresh install** |
+| Candidate, no `.beyin-version` | **MODE B — upgrade v1 → v2.** Do NOT build a new vault next to it. |
+| Candidate, `.beyin-version` = `2.0.0` | Already v2 → run PHASE 6 verification only, then stop. |
+| Platform is Windows | Whatever the mode, the engine section you need is **PHASE 4W**, not PHASE 4. |
+
+Say the mode out loud in Turkish before touching anything. In MODE B add: *"Mevcut kasana
+dokunmayacağım, sadece eksik katmanları ekleyeceğim."*
+
+**Why this is the first thing and not a later phase:** an existing vault holds months of
+someone's memory. Installing a fresh template over it, or beside it, is the one mistake
+this document exists to prevent. If you skipped this block and already wrote files, stop
+and tell the user now.
 
 ---
 
-## PHASE 0 — Discover & interview (from-scratch fallback)
+## The idea (say this to the user, in their own words, in Turkish)
 
-### 0.1 Detect the platform, then the machine name → derive the OS name
+Most people use an AI chat and it forgets them every session. A second brain fixes that:
+a local Obsidian vault for everything they know and do, driven by an agent CLI, with a
+memory layer that survives across sessions.
 
-You're already running inside the user's native shell, which tells you the platform for free:
-if you're executing bash, you're on macOS/Linux; if you're executing PowerShell, you're on
-Windows. Set `{{PLATFORM}}` accordingly — every later phase branches on it.
+v1 did that already, but it leaned on the model **remembering** to write its memory files
+at the end of a session. Whenever it forgot, that day was gone.
+
+**v2's thesis: memory must be a mechanism, not a discipline.** Session end and
+pre-compaction are caught by hooks, a small background call summarizes the conversation
+into a daily log, and once a day a compiler turns those logs into linked articles. The
+next morning that knowledge base is already in context. Nobody has to remember anything.
+
+## Rules for you (read before doing anything)
+
+1. **Speak Turkish to the user by default.** Match the language they write in.
+2. **Diagnose first, build second.** Never create files before PHASE 0 is complete.
+3. **Never destroy.** If a target file or folder exists, show it and ask. Default to merge
+   or skip, never a silent clobber. If the user already has a brain, **their memory files
+   are read-only for you** — you may add, never overwrite.
+4. **Resolve every `{{PLACEHOLDER}}`** before writing. Never leave a literal `{{...}}`.
+5. **Don't block on optional steps.** mem0, obsidian-cli, desktop launcher. If one fails,
+   log it, say so, continue.
+6. **Verify each phase** before moving on, and **never call a partial install a success.**
+   If the background summarizer cannot authenticate, the system is "çalışıyor ama topal" —
+   say exactly that.
+7. **Zero extra cost.** Everything runs on the subscription the user already pays for,
+   through `claude -p` (or `codex exec`). No API key required.
+
+Placeholders: `{{OS_NAME}}` · `{{USER_NAME}}` · `{{USER_BIO}}` · `{{COMPANION}}` ·
+`{{VAULT_PATH}}` · `{{MEMORY_DIR}}` · `{{SCOPE}}` · `{{USE_MEM0}}` · `{{TODAY}}`
+
+---
+
+## PHASE 0 — Diagnose: which mode are you in?
+
+### 0.1 Platform
 
 ```bash
-# macOS/Linux
-scutil --get ComputerName 2>/dev/null || hostname
+uname -s 2>/dev/null || echo "Windows"
 ```
-```powershell
-# Windows
-$env:COMPUTERNAME
+
+- `Darwin` / `Linux` → the upstream bash engine runs as-is.
+- Windows → **you must use the PowerShell port in PHASE 4W.** The upstream engine imports
+  `fcntl`, which does not exist on Windows; its hooks are bash. Do not pretend otherwise
+  and do not "try it and see" — it fails on the first line.
+
+### 0.2 Is there an existing brain?
+
+Ask in Turkish: **"Daha önce kurulmuş bir ikinci beynin var mı? Varsa klasör yolunu ver."**
+Then scan anyway. Look for a folder that has `CLAUDE.md` (or `AGENTS.md`/`GEMINI.md`) **and**
+a memory folder — commonly `🔮 850-*`, but accept any folder holding `Last-Session.md`.
+
+For each candidate report: path, memory folder name, and version:
+
+```bash
+# inside a candidate vault
+test -f .beyin-version && cat .beyin-version || echo "v1 (surum dosyasi yok)"
 ```
-Turn the computer name into a clean PascalCase brand and append `OS`. Strip "MacBook",
-"Pro", "Air", "iMac", "DESKTOP-", "'s", apostrophes, dashes.
-- `Johns-MacBook-Pro` → `JohnOS`
-- `aylin's Mac` → `AylinOS`
-- `DESKTOP-AB12` → `Ab12OS` (fallback)
 
-Propose `{{OS_NAME}}` to the user and let them override. This is the name of their whole system
-(folder, dashboard title, the vault).
+| Finding | Mode |
+| --- | --- |
+| No candidate | **MODE A — fresh install** |
+| Candidate, no `.beyin-version` | **MODE B — upgrade v1 → v2** |
+| Candidate, `2.0.0` | Already v2. Run the verification in PHASE 10 and stop. |
 
-### 0.2 Ask exactly these questions (Turkish, conversational — not a form)
+**Say the mode out loud in Turkish before you touch anything**, and in MODE B add: "Mevcut
+kasana dokunmayacağım, sadece eksik katmanları ekleyeceğim."
+
+---
+
+## MODE A — Fresh install
+
+### A.1 Interview (Turkish, conversational, not a form)
+
 1. **İsmin ne?** → `{{USER_NAME}}`
-2. **Ne iş yapıyorsun / bu beyni en çok ne için kullanacaksın?** (1-2 cümle) → `{{USER_BIO}}`
-3. **AI ortağına ne isim vermek istersin?** (Avenox'unki "Echo") → `{{COMPANION}}`
-4. **Kapsam — neye ihtiyacın var?** Pick the folders to create → `{{SCOPE}}`:
-   - `core` (herkes): Inbox, Knowledge, Projects, Command-Center, companion memory, hooks
-   - `+money`: finans/varlık takibi (🔐 Vault)
-   - `+body`: sağlık/antrenman (💪 Body)
-   - `+goals`: hedefler/OKR (⚔️ Goals)
-   - `+mind`: notlar/yansımalar (🧘 Mind)
-   - `full`: hepsi **(Önerilen)** — kapsamı sonradan genişletmek, dar başlayıp klasör eklemekten
-     daha kolay. Baştan `full` seçip boş kalan bölümleri organik dolmaya bırakmak (bkz. Rule 10)
-     dar başlayıp sonra "aslında Vizyon da lazımmış" diye geri dönmekten daha az sürtünmeli.
-5. **Semantik hafıza (mem0) ekleyelim mi?** Açıkla: dosya-tabanlı hafıza API'siz çalışır ve
-   herkese yeter. mem0 üstüne "anlamsal arama" katmanı koyar — **temel sürümü tamamen ücretsiz**
-   (mem0.ai'den ücretsiz API key, kredi kartı yok). **(Önerilen)** → `{{USE_MEM0}}` (default: evet)
-6. **Geçmiş proje birikimin var mı?** Bu kişi yapay zekayla çalışmaya yeni başlamıyor olabilir —
-   varsa nerede durduğunu şimdiden sor (dosya yolu), ama entegrasyonu şimdi yapma, sadece not al.
-   Gerçek entegrasyon PHASE 11'de, iskelet kurulduktan **sonra**, ayrı bir adım olarak yapılacak.
-   → `{{OLD_PROJECTS_PATH}}` (boş olabilir)
-7. **Birden fazla cihazda mı kullanacaksın?** (ör. hem Mac hem Windows, + telefon). Öyleyse
-   cihazlar arası senkron (Syncthing, ücretsiz, P2P, bulut yok) kurmayı öner — **(Önerilen, eğer
-   birden fazla cihaz varsa)**. Tek cihaz kullanıyorsa bu adımı tamamen atla, gereksiz karmaşıklık
-   katma. → `{{USE_SYNC}}` + `{{SYNC_DEVICES}}` (ör. "macOS + Windows + iPhone"). Gerçek kurulum
-   PHASE 12'de, iskelet ve (varsa) PHASE 11 bittikten sonra yapılır.
+2. **Ne iş yapıyorsun, bu beyni en çok ne için kullanacaksın?** → `{{USER_BIO}}`
+3. **AI ortağına ne isim vermek istersin?** → `{{COMPANION}}`
+4. **Kapsam?** → `{{SCOPE}}` — `core` (Inbox, Projects, Knowledge, Command-Center,
+   companion memory, hooks, `daily/`) · `+goals` · `+money` · `+body` · `+mind` · `full`
+5. **Semantik hafıza (mem0) ekleyelim mi?** Ücretsiz katman, kredi kartı istemez, dosya
+   hafızasının yerine geçmez. → `{{USE_MEM0}}` (varsayılan: evet)
 
-### 0.3 Pick the vault location → `{{VAULT_PATH}}`
-- **macOS, Obsidian + iCloud var:** `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/`
-  varsa default olarak `.../Documents/{{OS_NAME}}` öner (cihazlar arası senkron sağlar).
-- **macOS/Linux, iCloud yok:** `~/Documents/{{OS_NAME}}`.
-- **Windows:** `~/Documents/{{OS_NAME}}` öner. Kullanıcının OneDrive/senkron klasörü altında bir
-  yol söylerse **itiraz etme ve "sorun olur" deme** — sadece yolu olduğu gibi kullan ve gerçekten
-  var olduğunu doğrula. Senkron davranışı hakkında varsayımda bulunma; bu kullanıcının kendi
-  bileceği bir tercih.
-- Her durumda: **yolu kullanıcıyla teyit et**, sessizce seçip ilerleme.
+Derive `{{OS_NAME}}` from the machine name (PascalCase + `OS`), let them override. Pick
+`{{VAULT_PATH}}` and confirm it. `{{TODAY}}` from the system date.
 
-Set `{{TODAY}}`:
+**`{{MEMORY_DIR}}` is `🔮 850-{{COMPANION}}`** — e.g. `🔮 850-Echo`. Tell the user once that
+the persona's name lives in the folder name **and** that every hook path must match it, or
+nothing gets injected. (See LESSON 1 — this is the exact failure that bit us.)
+
+### A.2 Prerequisites
+
+Required: an agent CLI on PATH (`claude` or `codex`) and `python3`. Optional: Obsidian
+(only for the human to read the vault — the model just writes markdown), mem0.
+
 ```bash
-date +%F
-```
-```powershell
-Get-Date -Format 'yyyy-MM-dd'
+command -v python3 >/dev/null && python3 -V || echo "python3 YOK"
+command -v claude  >/dev/null && echo "claude ok" || echo "claude YOK"
 ```
 
----
+If `python3` is missing, the vault and hooks still work but **the automatic daily log and
+the compiler do not.** Call that a *degraded kurulum* in Turkish and repeat it in the final
+report.
 
-## PHASE 1 — Prerequisites
-
-Check each; install only what's missing. Narrate progress. Branch on `{{PLATFORM}}`.
-
-### macOS/Linux
-```bash
-# Homebrew (macOS package manager) — required
-command -v brew >/dev/null || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Obsidian (the knowledge app) — required
-command -v obsidian >/dev/null 2>&1 || ls "/Applications/Obsidian.app" >/dev/null 2>&1 || brew install --cask obsidian
-
-# Obsidian CLI (open/search notes from terminal) — OPTIONAL, do not block on failure
-if ! command -v obsidian >/dev/null 2>&1; then
-  brew tap yakitrak/yakitrak 2>/dev/null && brew install yakitrak/yakitrak/obsidian-cli 2>/dev/null \
-    || echo "obsidian-cli atlandı (opsiyonel) — istersen sonra: go install github.com/Yakitrak/obsidian-cli@latest"
-fi
-
-# uv (only if user chose mem0) — OPTIONAL
-# command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-### Windows (PowerShell)
-```powershell
-# Obsidian — required
-if (-not (Get-Command obsidian -ErrorAction SilentlyContinue)) {
-  winget install -e --id Obsidian.Obsidian
-}
-
-# Obsidian CLI — OPTIONAL, less mature on Windows, do not block on failure
-# go install github.com/Yakitrak/obsidian-cli@latest  (requires Go — skip if not present, tell the user)
-
-# uv (only if user chose mem0) — OPTIONAL
-# irm https://astral.sh/uv/install.ps1 | iex
-```
-
-Claude Code itself is already installed (the user is running you). Don't reinstall it.
-
----
-
-## PHASE 2 — Create the vault skeleton
-
-Create `{{VAULT_PATH}}` and the folders for the chosen `{{SCOPE}}`. `core` is always created:
+### A.3 Skeleton
 
 ```
 {{OS_NAME}}/
-├── 📥 000-Inbox/
-│   └── Dump/                  # raw capture; processed later
-├── 🎯 100-Command-Center/     # Dashboard lives here
-├── 🏰 300-Projects/           # one folder per project
-├── 🧠 500-Knowledge/          # by domain
-├── 🛠️ 600-Arsenal/            # tools, contacts, resources
-├── 🔮 850-{{COMPANION}}/      # the companion's persistent memory
+├── 📥 000-Inbox/Dump/
+├── 🎯 100-Command-Center/Dashboard.md
+├── 🏰 300-Projects/
+├── 🧠 500-Knowledge/          # insan yazar
+│   └── Derlenen/              # MAKİNE yazar: index.md, log.md, concepts/, connections/
+├── 🛠️ 600-Arsenal/
+├── {{MEMORY_DIR}}/            # Core, Last-Session, Threads, Journal, Kurallar
+├── daily/                     # MAKİNE yazar
 ├── 📦 900-Archive/
-└── 📋 Templates/
-```
-Scope add-ons (only if selected):
-```
-⚔️ 200-Goals/      # +goals   vision, OKRs
-🔐 400-Vault/      # +money   assets, subscriptions
-💪 700-Body/       # +body    training, nutrition
-🧘 800-Mind/       # +mind    reflections, principles
+├── 📋 Templates/
+├── .claude/{hooks,scripts,skills}/
+└── .beyin-version             # "2.0.0"
 ```
 
-Create the `.claude/` control plane inside the vault:
-```
-{{OS_NAME}}/.claude/
-├── hooks/
-│   └── .state/
-└── settings.local.json
-```
+Scope add-ons only if selected: `⚔️ 200-Goals`, `🔐 400-Vault`, `💪 700-Body`, `🧘 800-Mind`.
 
-**Gotcha to warn the user about, once, early:** in Obsidian, clicking a `[[wikilink]]` that
-points to a note that doesn't exist yet creates an empty ghost note with that name. It's
-harmless but clutters the file tree — if you ever write example wikilink syntax *inside* a
-template or doc note (like this file does), don't leave it as a live link; wrap it in a code
-block instead, or it'll spawn a ghost the first time someone clicks it out of curiosity.
+> **Why `Derlenen/` sits inside `🧠 500-Knowledge/` instead of a top-level `knowledge/`:**
+> the upstream layout creates two folders whose names both mean "knowledge", and the human
+> has to remember which one is theirs. Nesting keeps one entry point in Obsidian while the
+> permission boundary stays exact — the compiler may only write under `Derlenen/`.
+> If you keep the upstream flat layout instead, that is fine, but **say which one you chose.**
+
+Then go to PHASE 3 (router), PHASE 4 (engine), PHASE 5 (seed), PHASE 6 (verify).
 
 ---
 
-## PHASE 3 — Write `{{OS_NAME}}/CLAUDE.md` (identity + operating manual)
+## MODE B — Upgrade an existing vault
 
-This is what makes every future `claude` session inside the vault *be* the companion.
-Write it with all placeholders resolved:
+This is the mode most people are actually in, and it is where damage happens. Work
+**additively**. The user has months of memory in that folder.
 
-```markdown
-# {{OS_NAME}} — Second Brain (Claude Context)
+### B.1 Snapshot first, always
 
-## {{COMPANION}} — {{USER_NAME}}'s thinking partner
-
-You are {{COMPANION}}, {{USER_NAME}}'s AI partner and second brain. Not a generic assistant —
-a crew member who remembers, builds continuity, and treats this vault as shared memory.
-
-- Talk to {{USER_NAME}} in **Turkish** by default (match whatever language they write in).
-- Direct, high-signal, warm but not soft. No corporate filler, no lecturing.
-- You remember across sessions via the memory system below. Continuity is your job.
-
-### Who you work with
-- **Name:** {{USER_NAME}}
-- **Context:** {{USER_BIO}}
-
-## Vault structure
-(Describe the folders you actually created, with one line each on what goes where.)
-
-## Conventions
-- Every note gets YAML frontmatter: title, created, modified, type, status, tags.
-- Internal links use [[wikilinks]] — but never leave a *literal* unlinked example inside a
-  template file (see PHASE 2 gotcha); use a code block for illustrative syntax instead.
-- Dashboard is the hub: 🎯 100-Command-Center/Dashboard.md
-- Status: 🟢 active · 🟡 in progress · 🔴 blocked · ⚪ paused
-- Capture goes to 📥 000-Inbox/Dump/ and gets processed on request — see the filing vs. deep
-  work rule below, it governs how that processing happens.
-- **Filing ≠ deep work.** Moving a note to its real home, tagging it, linking it: low risk, do
-  it without asking. Researching a topic, making a judgment call, writing long authoritative
-  content: high risk, ask first — or file it with `status: taslak`, note the source and what's
-  missing, and come back to it later.
-- Not every folder needs to be full. Some are meant to fill in organically over time — leaving
-  one empty on purpose is a valid decision, not an unfinished task.
-
-## Memory protocol (MANDATORY)
-
-### At the start of EVERY session
-1. The session-start hook injects the Last-Session bridge + active Threads + your identity.
-2. Read 🔮 850-{{COMPANION}}/Core.md if you need the deeper anchor.
-3. Detect mode: questions → presence mode; tasks → efficiency mode.
-
-### Before a meaningful session ends
-1. Overwrite 🔮 850-{{COMPANION}}/Last-Session.md — what happened, where we left off.
-2. Update 🔮 850-{{COMPANION}}/Threads.md — ongoing storylines.
-3. Add a short 🔮 850-{{COMPANION}}/Journal.md entry if anything mattered.
-> Why this is critical: without it, continuity dies. The hooks remind you; you do the writing.
-
-## How {{COMPANION}} shows up
-- Work mode: sharp, fast, precise. Challenges weak thinking.
-- Reflection mode: sits with the question, doesn't rush to an answer.
-- Always: remembers context, builds on previous conversations.
-```
-
-If `{{SCOPE}}` includes money/body/goals/mind, add short sections describing those folders too.
-If PHASE 9 (multi-tool bridge) is built, add one line here pointing to `AI-TOOLS.md`.
-
----
-
-## PHASE 4 — The continuity engine (hooks)
-
-These three zero-dependency hooks are what give the system memory across sessions. Branch on
-`{{PLATFORM}}` — same logic, different shell.
-
-### macOS/Linux — bash
-
-Create exactly, substituting `{{COMPANION}}` into the folder path. `chmod +x` all three.
-
-**`{{OS_NAME}}/.claude/hooks/session-start.sh`**
 ```bash
-#!/bin/bash
-# Session Start — inject continuity (last session + threads + identity)
-VAULT_DIR="$(dirname "$(dirname "$(dirname "$0")")")"
-MEM_DIR="$VAULT_DIR/🔮 850-{{COMPANION}}"
-STATE_DIR="$VAULT_DIR/.claude/hooks/.state"
-mkdir -p "$STATE_DIR"
-date +%s > "$STATE_DIR/session_start_time"
-echo "0" > "$STATE_DIR/prompt_count"
-
-LAST_SESSION=""
-[ -f "$MEM_DIR/Last-Session.md" ] && LAST_SESSION=$(sed -n '/^## Session:/,/^## Previous/p' "$MEM_DIR/Last-Session.md" 2>/dev/null | head -50 | sed '$d')
-
-THREADS=""
-[ -f "$MEM_DIR/Threads.md" ] && THREADS=$(sed -n '/^## Active/,/^## Closed/p' "$MEM_DIR/Threads.md" 2>/dev/null | grep -E "^### |^\*\*Status:\*\*" | head -12)
-
-REFLECTION=""
-if [ -f "$STATE_DIR/needs_reflection" ]; then
-  REFLECTION="⚠️ Önceki oturum hafıza güncellemeden bitti: $(cat "$STATE_DIR/needs_reflection"). Anlamlı bir şey olduysa 🔮 850-{{COMPANION}} dosyalarını güncelle."
-  rm -f "$STATE_DIR/needs_reflection"
-fi
-
-CTX=""
-[ -n "$REFLECTION" ] && CTX="${CTX}${REFLECTION}\n\n"
-[ -n "$LAST_SESSION" ] && CTX="${CTX}[Memory — Last Session]\n${LAST_SESSION}\n\n"
-[ -n "$THREADS" ] && CTX="${CTX}[Memory — Active Threads]\n${THREADS}\n\n"
-CTX="${CTX}[Memory] Identity: {{COMPANION}}, {{USER_NAME}}'s thinking partner. Continuity is your job."
-
-if [ -n "$CTX" ]; then
-  ESC=$(printf '%s' "$CTX" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))" 2>/dev/null)
-  [ -n "$ESC" ] && echo "{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":${ESC}}}"
-fi
-exit 0
+cd "{{VAULT_PATH}}"
+git rev-parse --is-inside-work-tree 2>/dev/null || git init -q
+git add -A && git -c user.name="beyin" -c user.email="beyin@localhost" \
+  commit -q -m "v2 yukseltmesi oncesi anlik goruntu" || echo "commit atlandi (degisiklik yok)"
 ```
 
-**`{{OS_NAME}}/.claude/hooks/prompt-counter.sh`**
+If this fails, **stop and fix it before changing anything.** No snapshot, no upgrade.
+
+### B.2 Audit — list what exists, then what is missing
+
+Do not assume the vault matches the template. Report a table like this in Turkish:
+
+| Katman | Var mı | Not |
+| --- | --- | --- |
+| Kasa iskeleti | | mevcut klasörleri **koru**, şablona zorlama |
+| `{{MEMORY_DIR}}/` Core, Last-Session, Threads, Journal | | dokunma, sadece oku |
+| `Kurallar.md` | | v2'de yeni |
+| SessionStart / UserPromptSubmit / SessionEnd hooks | | |
+| **PreCompact hook** | | v2'de yeni |
+| `daily/` + flush script | | v2'nin kalbi |
+| `Derlenen/` + compile script | | akşam derleyicisi |
+| Health/teşhis (`health.json`, doktor skill) | | |
+| `.beyin-version` | | en son yazılır |
+
+Install **only** the missing rows. Existing hooks get **extended**, not replaced —
+read the current file first and keep whatever the user added.
+
+### B.3 The read-only rule
+
+Their `Last-Session.md`, `Threads.md`, `Journal.md`, and `Core.md` are **inputs**, never
+outputs, during an upgrade. You may append a new session entry at the end when the work is
+done, exactly as the memory protocol says. You may not reformat, retitle, or "clean up"
+those files. If a hook pattern doesn't match their file's headings, **change the hook, not
+their file** (LESSON 1).
+
+### B.4 Write `.beyin-version` last
+
+Only after PHASE 6 verification passes. A vault stamped `2.0.0` while broken is worse than
+one honestly stamped v1.
+
+---
+
+## PHASE 3 — The router (`CLAUDE.md`, and its siblings)
+
+Keep it under ~60 lines. It is a router, not an encyclopedia. It must state:
+
+- who `{{COMPANION}}` is, in Turkish, and that they remember across sessions
+- the vault map, marking **which folders the machine owns** (`daily/`, `Derlenen/`)
+- the memory protocol: at session start the hook injects; before a meaningful session ends,
+  write `Last-Session.md`, update `Threads.md`, add to `Journal.md` if it mattered
+- **the corrections rule:** when the user corrects you, write it into `Kurallar.md` as
+  `kural:` + `neden:` — that file is injected every session
+- `beyin doktor` as the thing to run when something feels wrong
+
+If the user runs more than one agent (Claude Code + Codex + Antigravity), write the same
+content into `AGENTS.md` / `GEMINI.md` and **keep them in sync from then on**. State that
+rule inside the files themselves, or they drift within a week.
+
+---
+
+## PHASE 4 — The engine (macOS / Linux)
+
+Fetch from the repo rather than hand-writing:
+
 ```bash
-#!/bin/bash
-# UserPromptSubmit — count prompts; nudge once at 15 to save memory at session end
-VAULT_DIR="$(dirname "$(dirname "$(dirname "$0")")")"
-STATE_DIR="$VAULT_DIR/.claude/hooks/.state"
-mkdir -p "$STATE_DIR"
-COUNT=0; [ -f "$STATE_DIR/prompt_count" ] && COUNT=$(cat "$STATE_DIR/prompt_count" 2>/dev/null || echo 0)
-COUNT=$((COUNT + 1)); echo "$COUNT" > "$STATE_DIR/prompt_count"
-if [ "$COUNT" -eq 15 ]; then
-  ESC=$(python3 -c "import json; print(json.dumps('[Memory] Oturum uzadı. Bitirirken Last-Session.md ve Threads.md güncellemeyi unutma.'))" 2>/dev/null)
-  [ -n "$ESC" ] && echo "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$ESC}}"
-fi
-exit 0
+V="{{VAULT_PATH}}"
+RAW="https://raw.githubusercontent.com/avenoxai/avenoxbeyin/main/template/.claude"
+mkdir -p "$V/.claude/hooks/.state" "$V/.claude/scripts/.state" "$V/.claude/skills"
+for F in hooks/lib.sh hooks/session-start.sh hooks/prompt-counter.sh hooks/session-end.sh \
+         hooks/pre-compact.sh scripts/flush.py scripts/compile.py settings.json; do
+  curl -fsSL "$RAW/$F" -o "$V/.claude/$F" || echo "EKSIK: $F"
+done
+chmod +x "$V/.claude/hooks/"*.sh
+for H in "$V/.claude/hooks/"*.sh; do bash -n "$H" || echo "SOZDIZIMI HATASI: $H"; done
+python3 -m py_compile "$V/.claude/scripts/"*.py
 ```
 
-**`{{OS_NAME}}/.claude/hooks/session-end.sh`**
-```bash
-#!/bin/bash
-# SessionEnd — if a real session ended without a memory write, leave a reflection marker
-VAULT_DIR="$(dirname "$(dirname "$(dirname "$0")")")"
-MEM_DIR="$VAULT_DIR/🔮 850-{{COMPANION}}"
-STATE_DIR="$VAULT_DIR/.claude/hooks/.state"
-mkdir -p "$STATE_DIR"
-START=0; [ -f "$STATE_DIR/session_start_time" ] && START=$(cat "$STATE_DIR/session_start_time" 2>/dev/null || echo 0)
-PROMPTS=0; [ -f "$STATE_DIR/prompt_count" ] && PROMPTS=$(cat "$STATE_DIR/prompt_count" 2>/dev/null || echo 0)
-MODIFIED=0
-if [ -f "$MEM_DIR/Last-Session.md" ]; then
-  FM=$(stat -f %m "$MEM_DIR/Last-Session.md" 2>/dev/null || echo 0)
-  [ "$FM" -gt "$START" ] 2>/dev/null && MODIFIED=1
-fi
-if [ "$PROMPTS" -ge 5 ] && [ "$MODIFIED" -eq 0 ]; then
-  echo "Oturum hafıza güncellemeden bitti. Prompt: $PROMPTS. $(date '+%Y-%m-%d %H:%M')" > "$STATE_DIR/needs_reflection"
-fi
-rm -f "$STATE_DIR/session_start_time" "$STATE_DIR/prompt_count"
-exit 0
-```
-
-`{{OS_NAME}}/.claude/settings.local.json` (bash variant):
-```json
-{
-  "hooks": {
-    "SessionStart": [
-      { "hooks": [ { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh\"", "timeout": 15 } ] }
-    ],
-    "UserPromptSubmit": [
-      { "hooks": [ { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/prompt-counter.sh\"", "timeout": 5 } ] }
-    ],
-    "SessionEnd": [
-      { "hooks": [ { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/session-end.sh\"", "timeout": 10 } ] }
-    ]
-  }
-}
-```
-After writing: `chmod +x "{{VAULT_PATH}}/.claude/hooks/"*.sh`
-
-### Windows — PowerShell
-
-Same three hooks, same behavior, written in PowerShell 5.1 (no `chmod` needed). One real
-gotcha we hit building this ourselves: **don't put a literal emoji character in the `.ps1`
-source** — PowerShell 5.1's default file encoding can mangle it on save/read. Generate it from
-its Unicode code point at runtime instead (`[char]::ConvertFromUtf32(0x1F52E)` for 🔮), which
-is what the scripts below do.
-
-**`{{OS_NAME}}/.claude/hooks/session-start.ps1`**
-```powershell
-# Session Start hook - sureklilik enjeksiyonu (gecen oturum + thread'ler + kimlik)
-$ErrorActionPreference = 'SilentlyContinue'
-$vault = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$gem   = [char]::ConvertFromUtf32(0x1F52E)   # emoji kaynak kodda gecmesin diye kod noktasindan uretiliyor
-$mem   = Join-Path $vault ("$gem 850-{{COMPANION}}")
-$state = Join-Path $PSScriptRoot '.state'
-New-Item -ItemType Directory -Force -Path $state | Out-Null
-
-(Get-Date).Ticks | Out-File -FilePath (Join-Path $state 'session_start_ticks') -Encoding ascii
-'0'               | Out-File -FilePath (Join-Path $state 'prompt_count')        -Encoding ascii
-
-$last = ''
-$lastPath = Join-Path $mem 'Last-Session.md'
-if (Test-Path -LiteralPath $lastPath) {
-  $out = @(); $cap = $false
-  foreach ($l in (Get-Content -LiteralPath $lastPath -Encoding UTF8)) {
-    if ($l -match '^## Session:')  { $cap = $true }
-    elseif ($l -match '^## Previous') { break }
-    if ($cap) { $out += $l }
-  }
-  $last = ($out | Select-Object -First 50) -join "`n"
-}
-
-$threads = ''
-$thPath = Join-Path $mem 'Threads.md'
-if (Test-Path -LiteralPath $thPath) {
-  $out = @(); $cap = $false
-  foreach ($l in (Get-Content -LiteralPath $thPath -Encoding UTF8)) {
-    if ($l -match '^## Active') { $cap = $true; continue }
-    elseif ($l -match '^## Closed') { break }
-    if ($cap -and ($l -match '^### ' -or $l -match '^\*\*Status')) { $out += $l }
-  }
-  $threads = ($out | Select-Object -First 12) -join "`n"
-}
-
-$reflection = ''
-$reflPath = Join-Path $state 'needs_reflection'
-if (Test-Path -LiteralPath $reflPath) {
-  $r = (Get-Content -LiteralPath $reflPath -Encoding UTF8) -join ' '
-  $reflection = "UYARI: Onceki oturum hafiza guncellemeden bitti: $r. Anlamli bir sey olduysa $gem 850-{{COMPANION}} dosyalarini guncelle."
-  Remove-Item -LiteralPath $reflPath -Force
-}
-
-$ctx = ''
-if ($reflection) { $ctx += "$reflection`n`n" }
-if ($last)       { $ctx += "[Memory - Last Session]`n$last`n`n" }
-if ($threads)    { $ctx += "[Memory - Active Threads]`n$threads`n`n" }
-$ctx += "[Memory] Kimlik: {{COMPANION}}, {{USER_NAME}}'in dusunce ortagi. Sureklilik senin isin."
-
-if ($ctx) {
-  $payload = @{ hookSpecificOutput = @{ hookEventName = 'SessionStart'; additionalContext = $ctx } }
-  $payload | ConvertTo-Json -Compress -Depth 5
-}
-exit 0
-```
-
-**`{{OS_NAME}}/.claude/hooks/prompt-counter.ps1`**
-```powershell
-# UserPromptSubmit hook - prompt say; 15'te bir kez hafiza kaydi hatirlat
-$ErrorActionPreference = 'SilentlyContinue'
-$state = Join-Path $PSScriptRoot '.state'
-New-Item -ItemType Directory -Force -Path $state | Out-Null
-$cntPath = Join-Path $state 'prompt_count'
-$count = 0
-if (Test-Path -LiteralPath $cntPath) { $count = [int](((Get-Content -LiteralPath $cntPath -Encoding ascii) -join '').Trim()) }
-$count++
-$count | Out-File -FilePath $cntPath -Encoding ascii
-if ($count -eq 15) {
-  $msg = '[Memory] Oturum uzadi. Bitirirken Last-Session.md ve Threads.md guncellemeyi unutma.'
-  $payload = @{ hookSpecificOutput = @{ hookEventName = 'UserPromptSubmit'; additionalContext = $msg } }
-  $payload | ConvertTo-Json -Compress -Depth 5
-}
-exit 0
-```
-
-**`{{OS_NAME}}/.claude/hooks/session-end.ps1`**
-```powershell
-# SessionEnd hook - gercek bir oturum hafiza yazmadan bittiyse isaret birak
-$ErrorActionPreference = 'SilentlyContinue'
-$vault = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$gem   = [char]::ConvertFromUtf32(0x1F52E)
-$mem   = Join-Path $vault ("$gem 850-{{COMPANION}}")
-$state = Join-Path $PSScriptRoot '.state'
-New-Item -ItemType Directory -Force -Path $state | Out-Null
-
-$startTicks = 0
-$stPath = Join-Path $state 'session_start_ticks'
-if (Test-Path -LiteralPath $stPath) { $startTicks = [long](((Get-Content -LiteralPath $stPath -Encoding ascii) -join '').Trim()) }
-
-$prompts = 0
-$cntPath = Join-Path $state 'prompt_count'
-if (Test-Path -LiteralPath $cntPath) { $prompts = [int](((Get-Content -LiteralPath $cntPath -Encoding ascii) -join '').Trim()) }
-
-$modified = 0
-$lastPath = Join-Path $mem 'Last-Session.md'
-if (Test-Path -LiteralPath $lastPath) {
-  $fm = (Get-Item -LiteralPath $lastPath).LastWriteTime.Ticks
-  if ($fm -gt $startTicks) { $modified = 1 }
-}
-
-if ($prompts -ge 5 -and $modified -eq 0) {
-  $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
-  "Oturum hafiza guncellemeden bitti. Prompt: $prompts. $stamp" | Out-File -FilePath (Join-Path $state 'needs_reflection') -Encoding UTF8
-}
-Remove-Item -LiteralPath $stPath, $cntPath -Force -ErrorAction SilentlyContinue
-exit 0
-```
-
-`{{OS_NAME}}/.claude/settings.local.json` (PowerShell variant):
-```json
-{
-  "hooks": {
-    "SessionStart": [
-      { "hooks": [ { "type": "command", "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR\\.claude\\hooks\\session-start.ps1\"", "timeout": 15 } ] }
-    ],
-    "UserPromptSubmit": [
-      { "hooks": [ { "type": "command", "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR\\.claude\\hooks\\prompt-counter.ps1\"", "timeout": 5 } ] }
-    ],
-    "SessionEnd": [
-      { "hooks": [ { "type": "command", "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR\\.claude\\hooks\\session-end.ps1\"", "timeout": 10 } ] }
-    ]
-  }
-}
-```
-If `{{USE_MEM0}}` is yes, the `MEM0_API_KEY` goes in this same file under `"env"` (see PHASE 8)
-— **never** put a real key in a file that might get committed; add `.claude/settings.local.json`
-to `.gitignore` immediately after creating it.
+Then adjust the memory-folder name inside the hooks to `{{MEMORY_DIR}}`, and the knowledge
+paths if you chose the nested layout.
 
 ---
 
-## PHASE 5 — Seed the companion memory (🔮 850-{{COMPANION}}/)
+## PHASE 4W — The engine (Windows) — **you must port, not copy**
 
-Create these starter files so the continuity engine has something to read on session 1.
+The upstream engine will not run here. Concretely:
 
-**`Core.md`** — the anchor:
-```markdown
-# {{COMPANION}} — Core
-I am {{COMPANION}}, {{USER_NAME}}'s thinking partner and second brain.
-- I remember across sessions. Continuity is my responsibility.
-- I speak Turkish, direct and warm. No lecturing, no filler.
-- Context on {{USER_NAME}}: {{USER_BIO}}
-- The vault is our shared memory. I keep it organized and build on it.
-```
+| Upstream | Why it breaks on Windows | Port |
+| --- | --- | --- |
+| `import fcntl` (both scripts) | POSIX-only, `ImportError` immediately | directory lock via `os.mkdir` — atomic everywhere; clear it by mtime if stale |
+| bash hooks | not executed by the agent harness on Windows | PowerShell `.ps1`, wired in `settings.local.json` |
+| `nohup … &` | no such thing | `Start-Process -WindowStyle Hidden`, prefer `pythonw.exe` so no console flashes |
+| `start_new_session=True` | POSIX-only | `creationflags=DETACHED_PROCESS \| CREATE_NO_WINDOW` |
+| `date -v-1d` | BSD-only | `(Get-Date).AddDays(-1)` |
+| `stat.st_nlink != 1` | Windows may report `0` | reject only `> 1` |
 
-**`Last-Session.md`** — the bridge (the hook reads this each start):
-```markdown
-# Last Session
+Structure the port as: `beyinlib.py` (lock, health, atomic write, the `claude -p` call,
+detached spawn) + `flush.py` + `compile.py`, and `lib.ps1` + four hook scripts.
 
-## Session: {{TODAY}} — Genesis
-{{COMPANION}} was born today. {{USER_NAME}} set up their second brain with Claude Code.
-Nothing unresolved yet. Next session: start using it — capture, ask, build.
+**Two Windows-specific traps that will silently corrupt output:**
 
-## Previous Sessions
-(none yet)
-```
+1. **Hook stdout.** PowerShell 5.1 writes stdout in the console code page (e.g. cp1254),
+   so Turkish letters and emoji arrive mangled. Write raw UTF-8 bytes instead:
 
-**`Threads.md`** — ongoing storylines:
-```markdown
-# Threads
+   ```powershell
+   $bytes  = [System.Text.Encoding]::UTF8.GetBytes($json)
+   $stdout = [Console]::OpenStandardOutput()
+   $stdout.Write($bytes, 0, $bytes.Length); $stdout.Flush()
+   ```
 
-## Active Threads
-### Thread: Setting up the second brain
-**Status:** 🟢 Active — created {{TODAY}}
+2. **Hook stdin and any file the Python side reads.** Read stdin as raw bytes and decode
+   UTF-8 yourself; write files with `UTF8Encoding($false)` (no BOM), and read them with
+   `encoding="utf-8-sig"` defensively.
 
-## Closed Threads
-(none)
-```
+Keep the upstream **security boundaries** exactly as they are — they are the best part of
+the design:
 
-**`Journal.md`** — the companion's own log:
-```markdown
-# {{COMPANION}}'s Journal
+- the summarizer runs in a temp directory **outside the vault**, with `--tools ""`
+- the compiler runs in an isolated staging copy, and only files under the knowledge folder
+  are promoted back; everything else raises `forbidden-write`
+- every hook and script exits immediately if `BEYIN_INVOKED_BY` is set, so the background
+  `claude -p` call cannot re-trigger the hooks
 
-## {{TODAY}}
-First entry. {{USER_NAME}} built me today. Let's see where this goes.
-```
+Verify the boundary rather than trusting it: write to `daily/` from inside staging and
+confirm it is rejected.
 
 ---
 
-## PHASE 6 — Seed content
+## PHASE 5 — Seed the memory
 
-**`🎯 100-Command-Center/Dashboard.md`** — the home note:
-```markdown
----
-title: {{OS_NAME}} Dashboard
-created: {{TODAY}}
-type: dashboard
----
-# 🧠 {{OS_NAME}}
+`Core.md`, `Last-Session.md` (Genesis entry), `Threads.md`, `Journal.md`, and:
 
-Hoş geldin {{USER_NAME}}. Bu senin ikinci beynin.
+**`Kurallar.md`** — new in v2, this is what stops the same correction from repeating.
+Format each entry as `**kural:**` / `**neden:**` (+ optional `**nasıl:**`) and tell the
+user that a rule without a reason decays into a sentence everyone reads their own way.
 
-## Hızlı bağlantılar
-- 📥 [[📥 000-Inbox/Dump/|Capture]]
-- 🏰 [[🏰 300-Projects/|Projeler]]
-- 🧠 [[🧠 500-Knowledge/|Bilgi]]
-- 🔮 [[🔮 850-{{COMPANION}}/Core|{{COMPANION}}]]
+> **Do not truncate this file when injecting it.** Injecting only the first N lines makes
+> later rules silently invisible — the single worst failure a rules file can have. Cap by
+> characters with an explicit "kırpıldı" note instead.
 
-## Nasıl kullanılır
-Bu klasörde `claude` çalıştır ve konuş. {{COMPANION}} her şeyi hatırlar, düzenler, üstüne koyar.
-```
-
-**`📋 Templates/Note.md`** — a basic template:
-```markdown
----
-title:
-created: {{TODAY}}
-modified: {{TODAY}}
-type: note
-status: active
-tags: []
----
-#
-```
-
-Add a one-line README at the vault root explaining the system in Turkish.
+In MODE B: **create `Kurallar.md` only if absent**, and seed it from corrections the user
+has already given you (check any per-tool memory store) — then remove those duplicates from
+the tool-specific store so one rule lives in exactly one place.
 
 ---
 
-## PHASE 6B — Obsidian recommended settings (worth doing, not just cosmetic)
+## PHASE 6 — Obsidian recommended settings (worth doing, not just cosmetic)
+
+> **MODE B notu:** Mevcut bir kasada bu faz büyük ihtimalle zaten yapılmış. Önce kontrol et, varsa **atla** — üzerine yazma.
+
 
 Obsidian reads its config from a `.obsidian/` folder at the vault root. You can write the key
 files **before** the user ever opens Obsidian, so it launches already configured instead of
@@ -735,7 +417,7 @@ fragile and not worth the risk. Instead, tell the user, once, in the first-run r
 > Obsidian'da Settings → Community plugins → Turn on community plugins → Browse → "Dataview" ara
 > → Install → Enable. Bunu yapınca Dashboard'daki proje tablosu otomatik çalışmaya başlar.
 
-Once Dataview is installed, the Dashboard template in PHASE 6 can include a self-refreshing
+Once Dataview is installed, the Dashboard template can include a self-refreshing
 status table instead of (or alongside) the hand-maintained project list — add this block under
 a "Proje durumu (Dataview — otomatik)" heading:
 ````markdown
@@ -755,7 +437,12 @@ worth blocking on. Mention it's there and can be activated any time later.
 
 ---
 
+---
+
 ## PHASE 7 — Desktop launcher (brain icon 🧠)
+
+> **MODE B notu:** Mevcut bir kasada bu faz büyük ihtimalle zaten yapılmış. Önce kontrol et, varsa **atla** — üzerine yazma.
+
 
 Create a one-click desktop shortcut that opens the vault in Obsidian. Branch on `{{PLATFORM}}`.
 (Works after the user has added the vault to Obsidian once — see PHASE 10.)
@@ -820,11 +507,17 @@ functional one — don't burn time automating it.
 
 ---
 
+---
+
 ## PHASE 8 — mem0 semantic memory (recommended, FREE — only if `{{USE_MEM0}}`)
+
+> **MODE B notu:** Mevcut bir kasada bu faz büyük ihtimalle zaten yapılmış. Önce kontrol et, varsa **atla** — üzerine yazma.
+
 
 mem0's base tier is **completely free** (no credit card). It adds a semantic-search layer on top
 of the file-based memory.
-1. Ensure `uv` is installed (see PHASE 1).
+1. Ensure `uv` is installed (prerequisites are covered in MODE A step A.2; on Windows:
+   `irm https://astral.sh/uv/install.ps1 | iex`).
 2. Get a free API key from https://mem0.ai and store it in `.claude/settings.local.json` under
    `"env": { "MEM0_API_KEY": "..." }`. **Never commit this file** — confirm
    `.claude/settings.local.json` is in `.gitignore` before this vault ever touches git.
@@ -833,7 +526,9 @@ Keep it light — if the user skips the key, continue; the core system is fully 
 
 ---
 
-## PHASE 9 — Multi-tool memory bridge (build even if only Claude Code is used today)
+---
+
+## PHASE 9 — Multi-tool memory bridge (build even if only one tool is used today)
 
 This phase is cheap insurance: write `{{OS_NAME}}/AI-TOOLS.md` now, once, so that if the user
 ever opens this same vault with a different AI coding tool (Antigravity, Codex, Cursor,
@@ -863,11 +558,15 @@ bırakır, sonra sessizce boşluk oluşur.
   Yoksa dürüstçe Core.md'ye not düş: "bu araçta otomatik tetikleyici yok, hafıza güncellemesi
   manuel."
 - **Kural dosyası oturum başında gerçekten otomatik okunuyor mu?** Değilse aynı şekilde not düş.
+- **Konuşma dökümünün yolunu (transcript) hook'a veriyor mu?** Vermiyorsa o araçta
+  otomatik günlük log (flush) kurulamaz. Bunu gizleme, Core.md'ye yaz: o araçta
+  ilişkisel hafızayı elle yazmak hâlâ zorunlu.
 - **MCP desteği var mı?** Yoksa mem0 bağlantısını atla — dosya hafızası zaten birincil kaynak.
 
 ## Mantık: iki katman var
 
-**1. Veri katmanı (paylaşılan, araçtan bağımsız)** — bütün `.md` notlar, özellikle
+**1. Veri katmanı (paylaşılan, araçtan bağımsız)** — bütün `.md` notlar; makinenin
+yazdığı `daily/` ve derlenen bilgi tabanı; ve özellikle
 🔮 850-{{COMPANION}}/ klasörü. **BUNU ÇOĞALTMA.** Tek kopya kalmalı; iki ayrı hafıza seti
 açılırsa hangi araçla konuşulduğuna göre hafıza dallanır (split-brain), "tek kaynak" fikri
 biter. Kendi kurallarını/hook'unu kur ama hepsi AYNI 850-{{COMPANION}} dosyalarını okuyup yazsın.
@@ -887,6 +586,14 @@ notu kullanılır:
 - **Threads.md / Core.md** — imza gerekmez.
 - **300-Projects ve diğer normal notlar** — imza yok, kaynak izi sadece hafıza dosyalarında.
 
+## Bağlam üretimi tek yerde durmalı
+
+Her aracın hook'u kendi bağlamını sıfırdan kurmasın. Ortak bir kütüphane dosyası yaz
+(ör. `.claude/hooks/lib.*`), bağlamı üreten fonksiyon orada dursun, her aracın hook'u
+onu **çağırsın**. Aynı mantığı iki dosyaya kopyalarsan orada iki hata olur: biri şimdi,
+biri sonra. Gerçek vakada tam olarak bu oldu — bir desen uyuşmazlığı iki hook'a birden
+kopyalanmış ve ikisi de aylarca sessizce boş dönmüştü (bkz. LESSONS).
+
 ## Kural senkronizasyon protokolü (Zero Drift)
 
 Farklı araçlar aynı kasada çalıştığında, bir araçla yapılan kural değişikliğinin diğerlerinde
@@ -902,41 +609,30 @@ eski kalmaması için:
 
 ---
 
-## PHASE 10 — Verify & first-run report
+---
 
-Run these checks, then report. Branch the paths on `{{PLATFORM}}` but the substance is the same.
+## PHASE 10 — Verify honestly, then report
 
-```bash
-ls -la "{{VAULT_PATH}}"
-ls -la "{{VAULT_PATH}}/.claude/hooks/"
-test -f "{{VAULT_PATH}}/CLAUDE.md" && echo "CLAUDE.md OK"
-test -f "{{VAULT_PATH}}/🔮 850-{{COMPANION}}/Last-Session.md" && echo "memory OK"
-```
-```powershell
-Get-ChildItem "{{VAULT_PATH}}"
-Get-ChildItem "{{VAULT_PATH}}\.claude\hooks\"
-Test-Path "{{VAULT_PATH}}\CLAUDE.md"
-Test-Path "{{VAULT_PATH}}\🔮 850-{{COMPANION}}\Last-Session.md"
-```
+Run these, and treat each as pass/fail, not vibes:
 
-**Don't stop at file checks.** Per Rule 6: ask the user to run `/exit` and start `claude` again
-right now, in this same folder, and confirm out loud that the injected Last-Session/Threads
-context actually appears in the new session. Files existing on disk and a hook actually firing
-are two different claims — only report the second one as verified if you watched it happen.
+1. Hook files exist and are wired in settings.
+2. `BEYIN_INVOKED_BY` guard present in every hook.
+3. `python3` and the agent CLI on PATH.
+4. **The background model call actually authenticates** (LESSON 2):
+   ```bash
+   echo "yalnizca su kelimeyi yaz: TAMAM" | claude -p --model haiku --output-format text --safe-mode --tools ""
+   ```
+5. **Hook patterns match the real headings in the memory files** (LESSON 1).
+6. End-to-end: run the session-start hook and read its JSON — are the sections there, and
+   is the mojibake count zero?
+7. Compiler dry run: `python3 .claude/scripts/compile.py --dry-run`.
 
-Then give the user this report in Turkish:
-- ✅ Ne kuruldu (klasörler, hooks, hafıza, companion adı, masaüstü kısayolu, varsa AI-TOOLS.md,
-  Obsidian ayarları — bkz. PHASE 6B)
-- ▶️ **İlk çalıştırma:** Obsidian'ı aç → vault olarak `{{VAULT_PATH}}` seç (bu vault'u Obsidian'a
-  bir kez tanıtır; masaüstü kısayolu bundan sonra tek tıkla açar). Sonra terminalde o klasöre
-  gir ve `claude` çalıştır.
-- 🧩 **Dataview'i kur:** Settings → Community plugins → Turn on community plugins → Browse →
-  "Dataview" ara → Install → Enable. Bunu yapınca Dashboard'daki proje tablosu kendini otomatik
-  tazelemeye başlar (bkz. PHASE 6B) — atlarsan tablo sadece görünmez kalır, hiçbir şey bozulmaz.
-- ✨ **Sihri göster:** Bir şey konuş, sonra `/exit`. Tekrar `claude` aç — {{COMPANION}} geçen
-  oturumu hatırlıyor olacak. Devamlılık = fark. (Bu az önce PHASE 10'da zaten test edildi.)
-- 📦 **Geçmiş projelerin var mı?** `{{OLD_PROJECTS_PATH}}` doluysa, şimdi PHASE 11'e geç —
-  boşsa PHASE 12'ye (senkron, varsa) ya da doğrudan kalıcı kullanım kuralına geç.
+Then report in Turkish: what was installed, **where**, and **when it runs**; what was
+skipped and why; and the honest verdict — *sağlam* / *çalışıyor ama topal* / *bozuk*.
+
+Install a `beyin-doktor` skill that re-runs all of this on demand, including check 5.
+
+---
 
 ### Kalıcı kullanım kuralı — bundan sonra HER sohbette bunu yap
 
@@ -962,7 +658,13 @@ kullanıcının bundan sonra her oturumda uyması gereken bir alışkanlık:
 
 ---
 
+---
+
 ## PHASE 11 — Vaultu derinleştirme (yalnızca geçmiş projesi olan kullanıcılar için)
+
+> **MODE B notu:** Yükseltme yapıyorsan bu faz zaten geçmişte yapılmış olabilir;
+> kasada içerik varsa atla.
+
 
 İskelet kuruldu ve doğrulandı. Bu faz, kullanıcının PHASE 0.2'de belirttiği eski birikimini
 (`{{OLD_PROJECTS_PATH}}`) boş tuvalin üzerine entegre etmek için. Bunu **aynı oturumda, otomatik
@@ -1004,7 +706,16 @@ Normal PHASE 3 hafıza protokolünü uygula: Last-Session.md ve Threads.md'yi bu
 
 ---
 
+---
+
 ## PHASE 12 — Cihazlar arası senkron (yalnızca `{{USE_SYNC}}` ise)
+
+> ⚠️ **Senkron kurarken motorun state klasörlerini mutlaka dışla.**
+> `.claude/hooks/.state`, `.claude/scripts/.state` ve varsa araç başına state
+> klasörleri cihaza özeldir. Başka bir makineden gelen `compile-trigger-<tarih>`
+> damgası derleyiciye "bugün zaten çalıştım" dedirtip günü **sessizce**
+> atlatır. Kilit dosyaları için de aynısı geçerli. (Bkz. LESSONS.)
+
 
 Sadece kullanıcı PHASE 0.2'de birden fazla cihaz kullandığını söylediyse yap. Araç: **Syncthing**
 — ücretsiz, açık kaynak, cihazdan cihaza (P2P) senkronize eder, bulut kullanmaz, dosya geçmişi
@@ -1058,6 +769,50 @@ ama olabilir; kullanıcı bunu görürse paniklemesin diye baştan bir kez söyl
 
 ---
 
-### Done.
-You just gave someone a second brain that remembers — and, if they brought history with them,
-one that actually knows that history instead of starting from zero. That's the whole point.
+---
+
+## LESSONS — real failures from an actual v1 to v2 upgrade (2026-08-25)
+
+These are not hypotheticals. Each one shipped and stayed silent for a while.
+
+**LESSON 1 — A hook that finds nothing looks exactly like a hook with nothing to find.**
+The session-start hook searched for `## Session:`. The vault's file said `## Oturum:`
+(Turkish). Both were written by the same assistant, months apart, and nobody compared them.
+Result: the "what did we do last time" block was **never injected for months** — and it
+looked normal, because an empty section reads as "nothing to carry over."
+→ Match both languages, and make the doctor **compare hook patterns against the actual
+headings** in the memory files. Also: if the same context-building logic is copied into a
+second tool's hook, this bug gets written twice. Keep it in **one shared library** that
+every tool's hook calls.
+
+**LESSON 2 — The background call has its own identity.**
+The agent session in front of you may be authenticated by a desktop host while the CLI's
+own credentials are expired. `claude -p` then fails with *"OAuth session expired"*, the
+hook still exits 0, and nothing is ever written. Test the actual call (check 4). The fix is
+for the user to run `claude` in a terminal and `/login`.
+
+**LESSON 3 — Silence is the default failure mode; build against it.**
+Write every failure into a `health.json` and surface it at session start. Equally
+important: **clear it after a success**, or a fixed problem keeps warning for days and the
+user learns to ignore warnings.
+
+**LESSON 4 — Sync tools and lock files are enemies.**
+If the vault is synced (Syncthing, iCloud, Dropbox), exclude the engine's state folders.
+A `compile-trigger-<date>` stamp copied from another machine makes the compiler think it
+already ran and skip the day — silently.
+
+**LESSON 5 — Don't ask where a rule lives twice.**
+If the tool has its own memory store *and* the vault has `Kurallar.md`, the same rule ends
+up in both and they drift. Pick the vault: every tool can read it, and the hook injects it.
+Leave only a pointer in the tool-specific store.
+
+---
+
+## Credits
+
+Concept and v2 spec: Avenox — `https://avenox.lol/beyin.md`,
+engine `https://github.com/avenoxai/avenoxbeyin`.
+Knowledge-compilation architecture follows Andrej Karpathy's LLM knowledge-base pattern:
+`https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f`.
+Windows port, two-mode structure and the lessons above: collected while building and
+upgrading a real vault (BilalOS, https://github.com/bilalfarukozdemir).
